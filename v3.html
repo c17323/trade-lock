@@ -47,10 +47,12 @@
           <label class="field">
             <span>要被锁住的密码</span>
             <div class="password-row">
-              <input type="text" id="password" spellcheck="false" autocapitalize="off" required>
+              <input type="password" id="password" spellcheck="false" autocapitalize="off"
+                     autocomplete="new-password" required>
+              <button type="button" class="ghost" id="copyPassword">复制</button>
               <button type="button" class="ghost" id="generate">换一个</button>
             </div>
-            <small>默认生成 24 位随机串（纯字母数字，兼容大多数券商密码规则）。建议直接用生成的；自填的弱密码可能被猜中。</small>
+            <small>默认生成 24 位随机串，密码框默认隐藏。点“复制”后直接粘贴到交易软件，不要抄在纸上。</small>
           </label>
 
           <label class="check">
@@ -110,12 +112,12 @@
           <h3>这串密码已经解锁</h3>
           <div class="secret-box">
             <code id="secret">—</code>
-            <button type="button" class="ghost" id="copySecret">复制</button>
+            <button type="button" class="ghost" id="copySecret">复制密码</button>
           </div>
-          <p class="warn">密码只在这里显示，不会保存到浏览器。请现在就用掉或存到安全的地方。</p>
+          <p class="warn">密码不会在屏幕上显示。点“复制密码”后直接粘贴到交易软件；刷新后需要重新解密。</p>
         </div>
 
-        <p class="backup-note">备份文件里只有密文。丢了备份、又清空了浏览器，密码就真的没了。</p>
+        <p class="backup-note">备份里只有密文。每份副本都记录同一个绝对解锁时间；换一份打开会接着原进度，不会重新计时。可以多点几次“导出离线文件”，把不同副本放到不同目录。</p>
       </section>
     </main>
 
@@ -126,6 +128,6 @@
   </div>
 
   <input type="file" id="importFile" accept="application/json,.json" hidden>
-  <script src="./app.v3.js?v=2"></script>
+  <script src="./app.v3.js?v=3"></script>
 </body>
 </html>

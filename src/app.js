@@ -10,6 +10,7 @@ import {
 
 const STORAGE_KEY = "tradeLock.v1";
 const EMBED_DISMISSED_KEY = "tradeLock.embeddedDismissed";
+const COPY_INDEX_KEY = "tradeLock.copyIndex";
 const CHAIN = defaultChainInfo;
 const client = mainnetClient();
 
@@ -24,6 +25,7 @@ const dom = {
   unlockAt: document.getElementById("unlockAt"),
   label: document.getElementById("label"),
   password: document.getElementById("password"),
+  copyPassword: document.getElementById("copyPassword"),
   generate: document.getElementById("generate"),
   ack: document.getElementById("ack"),
   lockBtn: document.getElementById("lockBtn"),
@@ -249,6 +251,7 @@ async function createLock(event) {
     }
     try {
       localStorage.removeItem(EMBED_DISMISSED_KEY);
+      localStorage.removeItem(COPY_INDEX_KEY);
     } catch {
       /* ignore */
     }
@@ -364,9 +367,10 @@ async function decryptLock() {
 
     lastSecret = plaintext.toString("utf8");
     revealed = true;
-    dom.secret.textContent = lastSecret;
+    dom.secret.textContent = "••••••••••••";
     dom.reveal.hidden = false;
-    dom.lockStatus.textContent = "已解锁。密码没有写入存储，刷新后需要重新解密。";
+    dom.lockStatus.textContent =
+      "已解锁。点“复制密码”获取，屏幕不显示明文；刷新后需要重新解密。";
     dom.decrypt.textContent = "已解锁";
     dom.decrypt.disabled = true;
     dom.reveal.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -411,7 +415,7 @@ async function exportPortable() {
         return r.text();
       }),
       fetch("./styles.v3.css?v=2", { cache: "no-store" }).then((r) => r.text()),
-      fetch("./app.v3.js?v=2", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./app.v3.js?v=3", { cache: "no-store" }).then((r) => r.text()),
     ]);
 
     const payload = JSON.stringify(data).replace(/</g, "\\u003c");
@@ -437,14 +441,22 @@ async function exportPortable() {
     const stamp = formatDateTime(data.createdAt)
       .replace(/[^\d]/g, "")
       .slice(0, 12);
+    let copyIndex = 1;
+    try {
+      copyIndex = (Number(localStorage.getItem(COPY_INDEX_KEY)) || 0) + 1;
+      localStorage.setItem(COPY_INDEX_KEY, String(copyIndex));
+    } catch {
+      /* ignore */
+    }
+    const suffix = copyIndex > 1 ? `-copy${copyIndex}` : "";
     a.href = url;
-    a.download = `trade-lock-offline-${stamp}.html`;
+    a.download = `trade-lock-offline-${stamp}${suffix}.html`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     dom.lockStatus.textContent =
-      "离线文件已导出。把它放进一个不显眼的目录；再次打开这个文件，锁仍然在。";
+      `已导出第 ${copyIndex} 份。再点一次“导出离线文件”可存下一份；把不同副本放到不同目录，解锁时间仍是同一个。`;
   } catch (err) {
     dom.lockStatus.textContent = `生成离线文件失败：${String(
       err.message || err
@@ -452,7 +464,8 @@ async function exportPortable() {
   }
 }
 
-function importBackup(file) {  if (!file) return;
+function importBackup(file) {
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     try {
@@ -479,6 +492,7 @@ function importBackup(file) {  if (!file) return;
       };
       try {
         localStorage.removeItem(EMBED_DISMISSED_KEY);
+        localStorage.removeItem(COPY_INDEX_KEY);
       } catch {
         /* ignore */
       }
@@ -513,33 +527,66 @@ function resetLock() {
 
 /* ---------- clipboard ---------- */
 
-async function copySecret() {
-  if (!lastSecret) return;
+async function copyText(text, button) {
+  if (!text) return false;
+  let ok = false;
   try {
-    await navigator.clipboard.writeText(lastSecret);
-    dom.copySecret.textContent = "已复制";
-    setTimeout(() => (dom.copySecret.textContent = "复制"), 1600);
+    await navigator.clipboard.writeText(text);
+    ok = true;
   } catch {
     const ta = document.createElement("textarea");
-    ta.value = lastSecret;
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
     document.body.appendChild(ta);
+    ta.focus();
     ta.select();
     try {
-      document.execCommand("copy");
-      dom.copySecret.textContent = "已复制";
-      setTimeout(() => (dom.copySecret.textContent = "复制"), 1600);
+      ok = document.execCommand("copy");
     } catch {
-      alert("复制失败，请长按密码手动复制。");
+      ok = false;
     }
     ta.remove();
+  }
+  if (ok && button) {
+    if (!button.dataset.label) button.dataset.label = button.textContent;
+    button.textContent = "已复制";
+    setTimeout(() => {
+      button.textContent = button.dataset.label;
+    }, 1600);
+  }
+  return ok;
+}
+
+async function copySecret() {
+  if (!lastSecret) return;
+  if (!(await copyText(lastSecret, dom.copySecret))) {
+    alert("复制失败，请长按密码手动复制。");
+  }
+}
+
+async function copyPassword() {
+  const password = dom.password.value;
+  if (!password) {
+    dom.setupStatus.textContent = "还没有生成密码。";
+    return;
+  }
+  if (await copyText(password, dom.copyPassword)) {
+    dom.setupStatus.textContent =
+      "密码已复制到剪贴板。直接粘贴到交易软件即可，屏幕上不会显示。";
+  } else {
+    dom.setupStatus.textContent = "复制失败，请手动选择密码框后复制。";
   }
 }
 
 /* ---------- wiring ---------- */
 
 dom.form.addEventListener("submit", createLock);
+dom.copyPassword.addEventListener("click", copyPassword);
 dom.generate.addEventListener("click", () => {
   dom.password.value = randomPassword();
+  dom.setupStatus.textContent = "已换一个，密码仍然隐藏。";
 });
 dom.decrypt.addEventListener("click", decryptLock);
 dom.export.addEventListener("click", exportBackup);
