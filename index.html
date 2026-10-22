@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#0b0d12">
   <meta name="description" content="把一串密码锁到未来某个时间点，解锁前任何人（包括本应用）都无法读取。">
   <title>锁单 · 时间锁</title>
-  <link rel="manifest" href="./manifest.webmanifest">
+  <link id="manifestLink" rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="app">
     <header class="top">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
@@ -19,7 +19,9 @@
           <p>把密码锁到指定时间之后</p>
         </div>
       </div>
-      <button class="ghost small" id="importTop" type="button">导入备份</button>
+      <div class="top-actions">
+        <button class="ghost small" id="importTop" type="button">导入备份</button>
+      </div>
     </header>
 
     <main>
@@ -96,6 +98,7 @@
         <div class="actions">
           <button type="button" class="primary" id="decrypt" disabled>解密</button>
           <button type="button" class="ghost" id="export">导出备份</button>
+          <button type="button" class="ghost" id="exportPortable">导出离线文件</button>
           <button type="button" class="ghost danger" id="reset">删除本地记录</button>
         </div>
         <p class="status" id="lockStatus" role="status"></p>

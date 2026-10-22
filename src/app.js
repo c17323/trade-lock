@@ -9,6 +9,7 @@ import {
 } from "tlock-js";
 
 const STORAGE_KEY = "tradeLock.v1";
+const EMBED_DISMISSED_KEY = "tradeLock.embeddedDismissed";
 const CHAIN = defaultChainInfo;
 const client = mainnetClient();
 
@@ -37,6 +38,7 @@ const dom = {
   fingerprint: document.getElementById("fingerprint"),
   decrypt: document.getElementById("decrypt"),
   export: document.getElementById("export"),
+  exportPortable: document.getElementById("exportPortable"),
   reset: document.getElementById("reset"),
   lockStatus: document.getElementById("lockStatus"),
   reveal: document.getElementById("reveal"),
@@ -45,6 +47,7 @@ const dom = {
   importTop: document.getElementById("importTop"),
   importFile: document.getElementById("importFile"),
   clock: document.getElementById("clock"),
+  backupNote: document.querySelector(".backup-note"),
 };
 
 let data = null;
@@ -52,6 +55,8 @@ let timer = null;
 let busy = false;
 let revealed = false;
 let lastSecret = "";
+const embeddedLock = readEmbeddedLock();
+const isPortable = Boolean(embeddedLock);
 
 /* ---------- formatting ---------- */
 
@@ -146,6 +151,18 @@ function save(next) {
   }
 }
 
+function readEmbeddedLock() {
+  const node = document.getElementById("embeddedLock");
+  if (!node) return null;
+  try {
+    const parsed = JSON.parse(node.textContent || "");
+    if (!parsed || typeof parsed.ciphertext !== "string") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 /* ---------- round math ---------- */
 
 function nextRoundForTime(targetMs) {
@@ -216,6 +233,11 @@ async function createLock(event) {
 
     if (!save(next)) {
       // Even if storage failed, show the lock so the user can export it.
+    }
+    try {
+      localStorage.removeItem(EMBED_DISMISSED_KEY);
+    } catch {
+      /* ignore */
     }
     data = next;
     lastSecret = "";
@@ -362,8 +384,58 @@ function exportBackup() {
     "备份已导出。把这个文件放到网盘/另一台设备；它只有密文。";
 }
 
-function importBackup(file) {
-  if (!file) return;
+async function exportPortable() {
+  if (!data) return;
+  dom.lockStatus.textContent = "正在生成离线文件…";
+  try {
+    const [html, css, js] = await Promise.all([
+      fetch("./index.html", { cache: "no-store" }).then((r) => {
+        if (!r.ok) throw new Error("读取页面模板失败");
+        return r.text();
+      }),
+      fetch("./styles.css", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./app.js", { cache: "no-store" }).then((r) => r.text()),
+    ]);
+
+    const payload = JSON.stringify(data).replace(/</g, "\\u003c");
+    const safeJs = js.replace(/<\/script/gi, "<\\/script");
+    const portable = html
+      .replace(/<link[^>]*rel="manifest"[^>]*>\s*/i, "")
+      .replace(
+        /<link[^>]*href="\.\/styles\.css"[^>]*>/i,
+        `<style>\n${css}\n</style>`
+      )
+      .replace(
+        /<script src="\.\/app\.js"><\/script>/i,
+        `<script id="embeddedLock" type="application/json">${payload}</script>\n<script>\n${safeJs}\n</script>`
+      );
+
+    if (!portable.includes('id="embeddedLock"')) {
+      throw new Error("注入离线数据失败，请刷新页面后重试");
+    }
+
+    const blob = new Blob([portable], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = formatDateTime(data.createdAt)
+      .replace(/[^\d]/g, "")
+      .slice(0, 12);
+    a.href = url;
+    a.download = `trade-lock-offline-${stamp}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    dom.lockStatus.textContent =
+      "离线文件已导出。把它放进一个不显眼的目录；再次打开这个文件，锁仍然在。";
+  } catch (err) {
+    dom.lockStatus.textContent = `生成离线文件失败：${String(
+      err.message || err
+    )}`;
+  }
+}
+
+function importBackup(file) {  if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     try {
@@ -387,6 +459,11 @@ function importBackup(file) {
         chainHash: parsed.chainHash || CHAIN.hash,
         fingerprint: parsed.fingerprint || "",
       };
+      try {
+        localStorage.removeItem(EMBED_DISMISSED_KEY);
+      } catch {
+        /* ignore */
+      }
       save(data);
       render();
     } catch (err) {
@@ -400,12 +477,13 @@ function importBackup(file) {
 
 function resetLock() {
   if (!data) return;
-  const ok = confirm(
-    "删除本地记录不会提前解锁。\n\n如果你还没导出备份，这串密码将永久丢失。确定删除？"
-  );
-  if (!ok) return;
+  const message = isPortable
+    ? "这是离线文件，密文嵌在 HTML 里。\n\n删除本地记录只会让它在这台浏览器里不再显示；要彻底移除，请同时删除这个 HTML 文件。\n\n继续？"
+    : "删除本地记录不会提前解锁。\n\n如果你还没导出备份，这串密码将永久丢失。确定删除？";
+  if (!confirm(message)) return;
   try {
     localStorage.removeItem(STORAGE_KEY);
+    if (isPortable) localStorage.setItem(EMBED_DISMISSED_KEY, "1");
   } catch {
     /* ignore */
   }
@@ -447,6 +525,7 @@ dom.generate.addEventListener("click", () => {
 });
 dom.decrypt.addEventListener("click", decryptLock);
 dom.export.addEventListener("click", exportBackup);
+dom.exportPortable.addEventListener("click", exportPortable);
 dom.reset.addEventListener("click", resetLock);
 dom.copySecret.addEventListener("click", copySecret);
 dom.importTop.addEventListener("click", () => dom.importFile.click());
@@ -456,8 +535,21 @@ dom.importFile.addEventListener("change", () => {
   dom.importFile.value = "";
 });
 
-data = load();
+let dismissed = false;
+try {
+  dismissed = localStorage.getItem(EMBED_DISMISSED_KEY) === "1";
+} catch {
+  /* ignore */
+}
+data = load() || (dismissed ? null : embeddedLock);
 render();
+if (isPortable) {
+  dom.exportPortable.hidden = true;
+  if (dom.backupNote) {
+    dom.backupNote.textContent =
+      "这是离线文件，锁嵌在 HTML 里；删除文件即彻底移除。";
+  }
+}
 dom.clock.textContent = formatClock(Date.now());
 setInterval(() => {
   dom.clock.textContent = formatClock(Date.now());

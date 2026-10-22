@@ -51,6 +51,13 @@ body {
   margin-bottom: 18px;
 }
 
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -465,3 +472,4 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   .app { padding-top: 42px; }
   .panel { padding: 28px 26px; }
 }
+
