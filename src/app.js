@@ -10,7 +10,6 @@ import {
 
 const STORAGE_KEY = "tradeLock.v1";
 const EMBED_DISMISSED_KEY = "tradeLock.embeddedDismissed";
-const ASSET_VERSION = "20261022";
 const CHAIN = defaultChainInfo;
 const client = mainnetClient();
 
@@ -390,12 +389,12 @@ async function exportPortable() {
   dom.lockStatus.textContent = "正在生成离线文件…";
   try {
     const [html, css, js] = await Promise.all([
-      fetch(`./index.html?v=${ASSET_VERSION}`, { cache: "no-store" }).then((r) => {
+      fetch("./index.html", { cache: "no-store" }).then((r) => {
         if (!r.ok) throw new Error("读取页面模板失败");
         return r.text();
       }),
-      fetch(`./styles.css?v=${ASSET_VERSION}`, { cache: "no-store" }).then((r) => r.text()),
-      fetch(`./app.js?v=${ASSET_VERSION}`, { cache: "no-store" }).then((r) => r.text()),
+      fetch("./styles.v2.css", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./app.v2.js", { cache: "no-store" }).then((r) => r.text()),
     ]);
 
     const payload = JSON.stringify(data).replace(/</g, "\\u003c");
@@ -403,11 +402,11 @@ async function exportPortable() {
     const portable = html
       .replace(/<link[^>]*rel="manifest"[^>]*>\s*/i, "")
       .replace(
-        /<link[^>]*href="\.\/styles\.css[^"]*"[^>]*>/i,
+        /<link[^>]*href="\.\/styles\.v2\.css"[^>]*>/i,
         `<style>\n${css}\n</style>`
       )
       .replace(
-        /<script src="\.\/app\.js[^"]*"><\/script>/i,
+        /<script src="\.\/app\.v2\.js"><\/script>/i,
         `<script id="embeddedLock" type="application/json">${payload}</script>\n<script>\n${safeJs}\n</script>`
       );
 
@@ -557,5 +556,5 @@ setInterval(() => {
 }, 1000);
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
+  navigator.serviceWorker.register("./sw.v2.js").catch(() => {});
 }
