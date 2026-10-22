@@ -409,8 +409,11 @@ async function exportPortable() {
   if (!data) return;
   dom.lockStatus.textContent = "正在生成离线文件…";
   try {
+    const templatePath = location.pathname.endsWith(".html")
+      ? location.pathname
+      : "./v4.html";
     const [html, css, js] = await Promise.all([
-      fetch("./v3.html", { cache: "no-store" }).then((r) => {
+      fetch(templatePath, { cache: "no-store" }).then((r) => {
         if (!r.ok) throw new Error("读取页面模板失败");
         return r.text();
       }),

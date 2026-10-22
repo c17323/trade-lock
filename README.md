@@ -10,11 +10,11 @@
 
 公网地址（已部署到 GitHub Pages，绑定 `c17323.top`）：
 
-**https://c17323.top/trade-lock/v2.html**
+**https://c17323.top/trade-lock/v4.html**
 
 把这个链接发给别人，对方就能在自己的手机/电脑上打开。每个人的锁都只存在各自浏览器的 `localStorage` 里，互相看不到，也不会上传到服务器。仓库源码在 [c17323/trade-lock](https://github.com/c17323/trade-lock)。
 
-旧链接 `https://c17323.top/trade-lock/` 可能因为浏览器缓存仍显示旧版；如果打开后没有“导出离线文件”按钮，直接用上面的 `v2.html` 链接。
+旧链接 `https://c17323.top/trade-lock/` 可能因为浏览器缓存仍显示旧版；如果打开后没有“导出离线文件”按钮，直接用上面的 `v4.html` 链接。
 
 ## 它解决什么问题
 

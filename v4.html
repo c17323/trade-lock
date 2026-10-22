@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="description" content="把一串密码锁到未来某个时间点，解锁前任何人（包括本应用）都无法读取。">
+  <title>锁单 · 时间锁</title>
+  <link id="manifestLink" rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.v3.css?v=2">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>锁单 · 时间锁</h1>
+          <p>把密码锁到指定时间之后</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="ghost small" id="importTop" type="button">导入备份</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="setup" class="panel">
+        <div class="eyebrow">SETUP</div>
+        <h2>设一个你打不开的期限</h2>
+        <p class="lede">
+          密码在本机生成并加密，明文不会写入任何存储。解锁密钥来自未来的
+          drand 公共随机信标——在到期之前，它还没有被生成出来。
+        </p>
+
+        <form id="setupForm" autocomplete="off">
+          <label class="field">
+            <span>解锁时间 <em>精确到分钟</em></span>
+            <input type="datetime-local" id="unlockAt" step="60" required>
+          </label>
+
+          <label class="field">
+            <span>用途备注 <em>可选</em></span>
+            <input type="text" id="label" maxlength="40" placeholder="例如：券商主密码 / 这一轮的止盈纪律">
+          </label>
+
+          <label class="field">
+            <span>要被锁住的密码</span>
+            <div class="password-row">
+              <input type="password" id="password" spellcheck="false" autocapitalize="off"
+                     autocomplete="new-password" required>
+              <button type="button" class="ghost" id="copyPassword">复制</button>
+              <button type="button" class="ghost" id="generate">换一个</button>
+            </div>
+            <small>默认生成 24 位随机串，密码框默认隐藏。点“复制”后直接粘贴到交易软件，不要抄在纸上。</small>
+          </label>
+
+          <label class="check">
+            <input type="checkbox" id="ack" required>
+            <span>我知道：到期前无法找回；卸载应用或清空浏览器数据只会让这串密码永久丢失，不会提前解锁。</span>
+          </label>
+
+          <button type="submit" class="primary" id="lockBtn">加密并锁定</button>
+          <p class="status" id="setupStatus" role="status"></p>
+        </form>
+
+        <details class="explain">
+          <summary>它到底能做什么、不能做什么</summary>
+          <div class="explain-body">
+            <p><strong>能：</strong>保证这串密码在解锁时间之前不以明文形式存在于你的手机、浏览器、聊天记录或服务器上。即使把这个网页删掉，密文也不会提前打开。</p>
+            <p><strong>不能：</strong>阻止你打开交易软件、手动平仓、换一台设备交易，或者找券商客服重置密码。它不是交易插件，也不接触你的账户。</p>
+            <p><strong>时间：</strong>解锁时间是绝对时间，删掉应用、清空页面或重新下载都不会重新计时；重新创建一把新锁才会重新计时。</p>
+            <p><strong>风险：</strong>如果你用它锁住唯一能处理爆仓风险的密码，可能造成真实亏损。请先想清楚你有没有备用手段。</p>
+          </div>
+        </details>
+      </section>
+
+      <section id="locked" class="panel locked-panel" hidden>
+        <div class="lock-head">
+          <div>
+            <div class="eyebrow">LOCKED</div>
+            <h2 id="lockLabel">已锁定</h2>
+          </div>
+          <span class="pill" id="lockState">锁定期</span>
+        </div>
+
+        <div class="countdown" id="countdown" aria-live="polite">
+          <div class="unit"><b id="cdDays">00</b><span>天</span></div>
+          <div class="unit"><b id="cdHours">00</b><span>时</span></div>
+          <div class="unit"><b id="cdMinutes">00</b><span>分</span></div>
+          <div class="unit"><b id="cdSeconds">00</b><span>秒</span></div>
+        </div>
+
+        <p class="unlock-at">计划解锁：<span id="unlockAtText">—</span></p>
+        <p class="unlock-hint">drand 信标每 3 秒一个；按整分选择时通常正好在整分触发，网络可能延迟几秒。</p>
+
+        <div class="finger">
+          <span>密文指纹</span>
+          <code id="fingerprint">—</code>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="primary" id="decrypt" disabled>解密</button>
+          <button type="button" class="ghost" id="export">导出备份</button>
+          <button type="button" class="ghost" id="exportPortable">导出离线文件</button>
+          <button type="button" class="ghost danger" id="reset">删除本地记录</button>
+        </div>
+        <p class="status" id="lockStatus" role="status"></p>
+
+        <div class="reveal" id="reveal" hidden>
+          <div class="eyebrow">REVEALED</div>
+          <h3>这串密码已经解锁</h3>
+          <div class="secret-box">
+            <code id="secret">—</code>
+            <button type="button" class="ghost" id="copySecret">复制密码</button>
+          </div>
+          <p class="warn">密码不会在屏幕上显示。点“复制密码”后直接粘贴到交易软件；刷新后需要重新解密。</p>
+        </div>
+
+        <p class="backup-note">备份里只有密文。每份副本都记录同一个绝对解锁时间；换一份打开会接着原进度，不会重新计时。可以多点几次“导出离线文件”，把不同副本放到不同目录。</p>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>本地加密 · 无账号 · 无服务器</span>
+      <span id="clock"></span>
+    </footer>
+  </div>
+
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+  <script src="./app.v3.js?v=4"></script>
+</body>
+</html>
