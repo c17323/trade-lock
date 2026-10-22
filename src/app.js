@@ -81,6 +81,17 @@ function formatDateTime(ts) {
   }).format(new Date(ts));
 }
 
+function formatMinute(ts) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(ts));
+}
+
 function formatClock(ts) {
   return new Intl.DateTimeFormat("zh-CN", {
     hour: "2-digit",
@@ -213,6 +224,7 @@ async function createLock(event) {
   dom.setupStatus.textContent = "正在向 drand 信标计算未来轮次，并在本地加密。";
 
   try {
+    const requestedAt = target;
     const round = nextRoundForTime(target);
     const unlockAt = roundTime(CHAIN, round);
     const ciphertext = await timelockEncrypt(
@@ -224,6 +236,7 @@ async function createLock(event) {
       v: 1,
       ciphertext,
       round,
+      requestedAt,
       unlockAt,
       createdAt: Date.now(),
       label: label || "未命名锁定",
@@ -260,7 +273,9 @@ function render() {
     dom.setup.hidden = true;
     dom.locked.hidden = false;
     dom.lockLabel.textContent = data.label;
-    dom.unlockAtText.textContent = formatDateTime(data.unlockAt);
+    dom.unlockAtText.textContent = formatMinute(
+      data.requestedAt || data.unlockAt
+    );
     dom.fingerprint.textContent = data.fingerprint || "—";
     dom.reveal.hidden = true;
     dom.secret.textContent = "—";
@@ -291,7 +306,8 @@ function tick() {
   dom.clock.textContent = formatClock(now);
   if (!data) return;
 
-  const remaining = Math.max(0, data.unlockAt - now);
+  const displayAt = data.requestedAt || data.unlockAt;
+  const remaining = Math.max(0, displayAt - now);
   const days = Math.floor(remaining / 86_400_000);
   const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
   const minutes = Math.floor((remaining % 3_600_000) / 60_000);
@@ -318,7 +334,8 @@ function tick() {
 
 async function decryptLock() {
   if (!data || busy) return;
-  if (Date.now() < data.unlockAt - 1000) return;
+  const displayAt = data.requestedAt || data.unlockAt;
+  if (Date.now() < displayAt - 1000) return;
 
   busy = true;
   dom.decrypt.disabled = true;
@@ -389,12 +406,12 @@ async function exportPortable() {
   dom.lockStatus.textContent = "正在生成离线文件…";
   try {
     const [html, css, js] = await Promise.all([
-      fetch("./v2.html", { cache: "no-store" }).then((r) => {
+      fetch("./v3.html", { cache: "no-store" }).then((r) => {
         if (!r.ok) throw new Error("读取页面模板失败");
         return r.text();
       }),
-      fetch("./styles.v2.css", { cache: "no-store" }).then((r) => r.text()),
-      fetch("./app.v2.js", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./styles.v3.css", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./app.v3.js", { cache: "no-store" }).then((r) => r.text()),
     ]);
 
     const payload = JSON.stringify(data).replace(/</g, "\\u003c");
@@ -402,11 +419,11 @@ async function exportPortable() {
     const portable = html
       .replace(/<link[^>]*rel="manifest"[^>]*>\s*/i, "")
       .replace(
-        /<link[^>]*href="\.\/styles\.v2\.css"[^>]*>/i,
+        /<link[^>]*href="\.\/styles\.v3\.css"[^>]*>/i,
         `<style>\n${css}\n</style>`
       )
       .replace(
-        /<script src="\.\/app\.v2\.js"><\/script>/i,
+        /<script src="\.\/app\.v3\.js"><\/script>/i,
         `<script id="embeddedLock" type="application/json">${payload}</script>\n<script>\n${safeJs}\n</script>`
       );
 
@@ -453,6 +470,7 @@ function importBackup(file) {  if (!file) return;
         v: 1,
         ciphertext: parsed.ciphertext,
         round: parsed.round,
+        requestedAt: parsed.requestedAt || parsed.unlockAt,
         unlockAt: parsed.unlockAt,
         createdAt: parsed.createdAt || Date.now(),
         label: parsed.label || "导入的锁定",
@@ -555,6 +573,5 @@ setInterval(() => {
   dom.clock.textContent = formatClock(Date.now());
 }, 1000);
 
-if ("serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("./sw.v2.js").catch(() => {});
-}
+// Deliberately no service worker here: navigation and assets stay network-first,
+// so updates never get stuck behind an old offline cache.

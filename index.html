@@ -7,7 +7,7 @@
   <meta name="description" content="把一串密码锁到未来某个时间点，解锁前任何人（包括本应用）都无法读取。">
   <title>锁单 · 时间锁</title>
   <link id="manifestLink" rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.v2.css">
+  <link rel="stylesheet" href="./styles.v3.css">
 </head>
 <body>
   <div class="app" id="app">
@@ -35,8 +35,8 @@
 
         <form id="setupForm" autocomplete="off">
           <label class="field">
-            <span>解锁时间</span>
-            <input type="datetime-local" id="unlockAt" required>
+            <span>解锁时间 <em>精确到分钟</em></span>
+            <input type="datetime-local" id="unlockAt" step="60" required>
           </label>
 
           <label class="field">
@@ -67,6 +67,7 @@
           <div class="explain-body">
             <p><strong>能：</strong>保证这串密码在解锁时间之前不以明文形式存在于你的手机、浏览器、聊天记录或服务器上。即使把这个网页删掉，密文也不会提前打开。</p>
             <p><strong>不能：</strong>阻止你打开交易软件、手动平仓、换一台设备交易，或者找券商客服重置密码。它不是交易插件，也不接触你的账户。</p>
+            <p><strong>时间：</strong>解锁时间是绝对时间，删掉应用、清空页面或重新下载都不会重新计时；重新创建一把新锁才会重新计时。</p>
             <p><strong>风险：</strong>如果你用它锁住唯一能处理爆仓风险的密码，可能造成真实亏损。请先想清楚你有没有备用手段。</p>
           </div>
         </details>
@@ -88,7 +89,8 @@
           <div class="unit"><b id="cdSeconds">00</b><span>秒</span></div>
         </div>
 
-        <p class="unlock-at">解锁时间：<span id="unlockAtText">—</span></p>
+        <p class="unlock-at">计划解锁：<span id="unlockAtText">—</span></p>
+        <p class="unlock-hint">drand 信标每 3 秒一个；按整分选择时通常正好在整分触发，网络可能延迟几秒。</p>
 
         <div class="finger">
           <span>密文指纹</span>
@@ -124,6 +126,6 @@
   </div>
 
   <input type="file" id="importFile" accept="application/json,.json" hidden>
-  <script src="./app.v2.js"></script>
+  <script src="./app.v3.js"></script>
 </body>
 </html>

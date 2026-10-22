@@ -4,7 +4,7 @@
   "private": true,
   "description": "A local-first drand time-lock vault that reveals a password only after a chosen date.",
   "scripts": {
-    "build": "esbuild src/app.js --bundle --minify --format=iife --target=es2020 --platform=browser --outfile=app.v2.js",
+    "build": "esbuild src/app.js --bundle --minify --format=iife --target=es2020 --platform=browser --outfile=app.v3.js",
     "serve": "node server.cjs"
   },
   "dependencies": {
