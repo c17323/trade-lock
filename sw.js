@@ -1,9 +1,11 @@
-const CACHE = "trade-lock-v1";
+const CACHE = "trade-lock-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./styles.css?v=20261022",
   "./app.js",
+  "./app.js?v=20261022",
   "./manifest.webmanifest",
   "./icon.svg",
 ];
