@@ -1,0 +1,14 @@
+{
+  "name": "trade-lock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A local-first drand time-lock vault that reveals a password only after a chosen date.",
+  "scripts": {
+    "build": "esbuild src/app.js --bundle --minify --format=iife --target=es2020 --platform=browser --outfile=app.js",
+    "serve": "node server.cjs"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "tlock-js": "^0.9.0"
+  }
+}

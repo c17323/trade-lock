@@ -1,0 +1,5 @@
+node_modules/
+test-tlock.cjs
+lan-qr.png
+allow-firewall.ps1
+.DS_Store

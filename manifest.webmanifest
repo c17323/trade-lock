@@ -1,0 +1,20 @@
+{
+  "name": "锁单 · 时间锁",
+  "short_name": "锁单",
+  "description": "把密码锁到指定时间之后，解锁前任何人（包括本应用）都无法读取。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d12",
+  "theme_color": "#0b0d12",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
