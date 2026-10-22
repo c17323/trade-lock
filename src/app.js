@@ -410,8 +410,8 @@ async function exportPortable() {
         if (!r.ok) throw new Error("读取页面模板失败");
         return r.text();
       }),
-      fetch("./styles.v3.css", { cache: "no-store" }).then((r) => r.text()),
-      fetch("./app.v3.js", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./styles.v3.css?v=2", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./app.v3.js?v=2", { cache: "no-store" }).then((r) => r.text()),
     ]);
 
     const payload = JSON.stringify(data).replace(/</g, "\\u003c");
@@ -419,11 +419,11 @@ async function exportPortable() {
     const portable = html
       .replace(/<link[^>]*rel="manifest"[^>]*>\s*/i, "")
       .replace(
-        /<link[^>]*href="\.\/styles\.v3\.css"[^>]*>/i,
+        /<link[^>]*href="\.\/styles\.v3\.css[^"]*"[^>]*>/i,
         `<style>\n${css}\n</style>`
       )
       .replace(
-        /<script src="\.\/app\.v3\.js"><\/script>/i,
+        /<script src="\.\/app\.v3\.js[^"]*"><\/script>/i,
         `<script id="embeddedLock" type="application/json">${payload}</script>\n<script>\n${safeJs}\n</script>`
       );
 
