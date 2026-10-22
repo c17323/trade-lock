@@ -418,12 +418,14 @@ async function exportPortable() {
         return r.text();
       }),
       fetch("./styles.v3.css?v=2", { cache: "no-store" }).then((r) => r.text()),
-      fetch("./app.v3.js?v=3", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./app.v3.js?v=5", { cache: "no-store" }).then((r) => r.text()),
     ]);
 
     const payload = JSON.stringify(data).replace(/</g, "\\u003c");
     const safeJs = js.replace(/<\/script/gi, "<\\/script");
     const portable = html
+      .replace(/<script[^>]*cloudflareinsights[^>]*><\/script>\s*/gi, "")
+      .replace(/<script[^>]*src="https?:\/\/[^"]+"[^>]*><\/script>\s*/gi, "")
       .replace(/<link[^>]*rel="manifest"[^>]*>\s*/i, "")
       .replace(
         /<link[^>]*href="\.\/styles\.v3\.css[^"]*"[^>]*>/i,
