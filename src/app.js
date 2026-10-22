@@ -389,7 +389,7 @@ async function exportPortable() {
   dom.lockStatus.textContent = "正在生成离线文件…";
   try {
     const [html, css, js] = await Promise.all([
-      fetch("./index.html", { cache: "no-store" }).then((r) => {
+      fetch("./v2.html", { cache: "no-store" }).then((r) => {
         if (!r.ok) throw new Error("读取页面模板失败");
         return r.text();
       }),
