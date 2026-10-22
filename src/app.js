@@ -16,7 +16,7 @@ const client = mainnetClient();
 
 const ALPHABET =
   "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-const PASSWORD_LENGTH = 24;
+const PASSWORD_LENGTH = 16;
 
 const dom = {
   setup: document.getElementById("setup"),
@@ -106,18 +106,24 @@ function formatClock(ts) {
 /* ---------- random / hash ---------- */
 
 function randomPassword(length = PASSWORD_LENGTH) {
-  const out = [];
-  const max = 256 - (256 % ALPHABET.length);
-  while (out.length < length) {
-    const buf = new Uint8Array(length * 2);
-    crypto.getRandomValues(buf);
-    for (const byte of buf) {
-      if (byte < max && out.length < length) {
-        out.push(ALPHABET[byte % ALPHABET.length]);
+  for (;;) {
+    const out = [];
+    const max = 256 - (256 % ALPHABET.length);
+    while (out.length < length) {
+      const buf = new Uint8Array(length * 2);
+      crypto.getRandomValues(buf);
+      for (const byte of buf) {
+        if (byte < max && out.length < length) {
+          out.push(ALPHABET[byte % ALPHABET.length]);
+        }
       }
     }
+    const value = out.join("");
+    // 同花顺登录密码：8-20 位，字母+数字，不能只有一种字符。
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value) && /\d/.test(value)) {
+      return value;
+    }
   }
-  return out.join("");
 }
 
 async function fingerprint(text) {
@@ -411,14 +417,14 @@ async function exportPortable() {
   try {
     const templatePath = location.pathname.endsWith(".html")
       ? location.pathname
-      : "./v4.html";
+      : "./v5.html";
     const [html, css, js] = await Promise.all([
       fetch(templatePath, { cache: "no-store" }).then((r) => {
         if (!r.ok) throw new Error("读取页面模板失败");
         return r.text();
       }),
       fetch("./styles.v3.css?v=2", { cache: "no-store" }).then((r) => r.text()),
-      fetch("./app.v3.js?v=5", { cache: "no-store" }).then((r) => r.text()),
+      fetch("./app.v4.js?v=1", { cache: "no-store" }).then((r) => r.text()),
     ]);
 
     const payload = JSON.stringify(data).replace(/</g, "\\u003c");
@@ -432,7 +438,7 @@ async function exportPortable() {
         `<style>\n${css}\n</style>`
       )
       .replace(
-        /<script src="\.\/app\.v3\.js[^"]*"><\/script>/i,
+        /<script src="\.\/app\.v4\.js[^"]*"><\/script>/i,
         `<script id="embeddedLock" type="application/json">${payload}</script>\n<script>\n${safeJs}\n</script>`
       );
 
